@@ -1,34 +1,32 @@
 module Ora.Lexer where
 import qualified Text.Parsec as P
+import Data.Char (isSpace)
 
 data Token = TokenSymbol String
-           | TokenInt Integer deriving Show
+           | TokenInt Integer
+           | TokenEof
+           deriving Show
 
-tokenize :: String -> [Either P.ParseError [Token]]
+tokenize :: String -> [Token]
 tokenize "" = []
-tokenize str = case P.parse parseLine "" str of
-  Right (tokens, left) -> (return tokens : tokenize left)
-  error@(Left e)       -> [error >>= return . fst]
+tokenize str = case P.parse parseOneToken "" str of
+  Right (TokenEof, _) -> []
+  Right (token, left) -> (token : tokenize left)
+  Left e              -> error . ("[BUG]" ++) . show $ e
 
-parseLine :: P.Parsec String () ([Token], String)
-parseLine = do
-  line <- tokens
+parseOneToken :: P.Parsec String () (Token, String)
+parseOneToken = do
+  line <- oneToken
   state <- P.getParserState
   return (line, P.stateInput state)
 
-tokens :: P.Parsec String () [Token]
-tokens = do
-  tokenList <- P.many token
-  _ <- (P.newline >> return ()) P.<|> P.eof
-  return tokenList
-  where
-    token = do
-      t <- int P.<|> op P.<|> symbol
-      _ <- P.many $ P.satisfy (`elem` spaceChars)
-      return t
+oneToken :: P.Parsec String () Token
+oneToken = do
+  t <- int P.<|> op P.<|> symbol P.<|> (P.eof >> return TokenEof)
+  P.spaces
+  return t
 
-opChars, spaceChars :: String
-spaceChars = " \t\r"
+opChars :: String
 opChars = "()+*-/"
 
 int :: P.Parsec String () Token
@@ -41,5 +39,7 @@ op = P.oneOf opChars >>= return . TokenSymbol . (: "")
 
 symbol :: P.Parsec String () Token
 symbol = do
-  symbolString <- P.many1 (P.satisfy (`notElem` '\n' : spaceChars ++ opChars))
+  symbolString <- P.many1 (P.satisfy isSymbolChar)
   return . TokenSymbol $ symbolString
+  where
+    isSymbolChar c = (not . isSpace $ c) && (c `notElem` opChars)
