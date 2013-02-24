@@ -8,9 +8,8 @@ data Token = TokenSymbol String
            deriving Show
 
 tokenize :: String -> [Token]
-tokenize "" = []
 tokenize str = case P.parse parseOneToken "" str of
-  Right (TokenEof, _) -> []
+  Right (token@TokenEof, _) -> [token]
   Right (token, left) -> (token : tokenize left)
   Left e              -> error . ("[BUG]" ++) . show $ e
 
