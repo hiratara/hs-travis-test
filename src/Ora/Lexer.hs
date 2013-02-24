@@ -1,6 +1,7 @@
 module Ora.Lexer where
 import qualified Text.Parsec as P
 import Data.Char (isSpace)
+import Control.Applicative ((<$>), (<*>))
 
 data Token = TokenSymbol String
            | TokenInt Integer
@@ -14,10 +15,7 @@ tokenize str = case P.parse parseOneToken "" str of
   Left e              -> error . ("[BUG]" ++) . show $ e
 
 parseOneToken :: P.Parsec String u (Token, String)
-parseOneToken = do
-  line <- oneToken
-  state <- P.getParserState
-  return (line, P.stateInput state)
+parseOneToken = (,) <$> oneToken <*> (P.stateInput <$> P.getParserState)
 
 oneToken :: P.Parsec String u Token
 oneToken = do
