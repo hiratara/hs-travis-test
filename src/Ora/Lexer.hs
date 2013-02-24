@@ -6,7 +6,7 @@ import Control.Applicative ((<$>), (<*>))
 data Token = TokenSymbol String
            | TokenInt Integer
            | TokenEof
-           deriving Show
+           deriving (Show, Eq)
 
 tokenize :: String -> [Token]
 tokenize str = case P.parse parseOneToken "" str of
