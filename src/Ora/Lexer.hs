@@ -13,13 +13,13 @@ tokenize str = case P.parse parseOneToken "" str of
   Right (token, left) -> (token : tokenize left)
   Left e              -> error . ("[BUG]" ++) . show $ e
 
-parseOneToken :: P.Parsec String () (Token, String)
+parseOneToken :: P.Parsec String u (Token, String)
 parseOneToken = do
   line <- oneToken
   state <- P.getParserState
   return (line, P.stateInput state)
 
-oneToken :: P.Parsec String () Token
+oneToken :: P.Parsec String u Token
 oneToken = do
   t <- int P.<|> op P.<|> symbol P.<|> (P.eof >> return TokenEof)
   P.spaces
@@ -28,15 +28,15 @@ oneToken = do
 opChars :: String
 opChars = "()+*-/"
 
-int :: P.Parsec String () Token
+int :: P.Parsec String u Token
 int = do
   x <- P.many1 $ P.oneOf "0123456789"
   return . TokenInt . read $ x
 
-op :: P.Parsec String () Token
+op :: P.Parsec String u Token
 op = P.oneOf opChars >>= return . TokenSymbol . (: "")
 
-symbol :: P.Parsec String () Token
+symbol :: P.Parsec String u Token
 symbol = do
   symbolString <- P.many1 (P.satisfy isSymbolChar)
   return . TokenSymbol $ symbolString
